@@ -1,6 +1,6 @@
 # Query RCSB for protein information
 # Author: Sam Pollard
-# Last Modified: May 5, 2014
+# Last Modified: May 6, 2014
 
 # Relevant information for proteins:
 # EXPERIMENT TYPE                : X-RAY DIFFRACTION
@@ -59,11 +59,3 @@ if query_pdb == True:
 	    print "Found number of PDB entries:", result.count('\n')
 	else:
 	    print "Failed to retrieve results"
-
-# Change the URL as needed
-reporturl = 'http://www.rcsb.org/pdb/rest/customReport.csv?pdbids=1stp,2jef,1cdg&customReportColumns=structureId,structureTitle,experimentalTechnique&format=csv'
-reqCSV = urllib2.Request(reporturl)
-CSVresponse = urllib2.urlopen(reqCSV)
-results = CSVresponse.read()
-outfile = open(pcrystal_test.PDBDir+'report.csv', 'w')
-outfile.write(results)
