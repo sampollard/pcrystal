@@ -2,7 +2,7 @@
 
 # the PDB file's HELIX and SHEET records.
 # Author: Clinton Burkhart
-# Modifed By Sam Pollard on May 8, 2014
+# Modifed By Sam Pollard on May 13, 2014
 
 # Load the Bio3D library that makes it easy for us to parse
 library("bio3d")
@@ -11,7 +11,7 @@ library("bio3d")
 infile  <- "protein_list.txt"
 
 # Outfile.  Will be recreated on every run.
-outfile <- "proteins_out.txt"
+outfile <- "helix_sheet.txt"
 
 # Delete and recreate the output file.
 if (file.exists(file = outfile))
@@ -35,10 +35,9 @@ for (pid in pids)
     # Get the PDB entry for this protein online.
     pdb <- read.pdb(pid)
 
-    # Print the % alpha helix and % beta sheet
-    # values based on the number and lengths of the
-    # structures compared to the number of residues
-    # in the sequence.
+    # Print the % alpha helix and % beta sheet values based on the number and
+    # lengths of the structures compared to the number of residues in the 
+    # sequence.
     helixpct <- sum(pdb$helix$end - pdb$helix$start) / length(pdb$seqres) * 100
     sheetpct <- sum(pdb$sheet$end - pdb$sheet$start) / length(pdb$seqres) * 100
 
