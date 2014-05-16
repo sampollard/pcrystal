@@ -1,12 +1,16 @@
 # Download the CSV of protein data for a given set of PDBIDs and download the
 # pdb ent files from wwpdb
 # Author: Sam Pollard
-# Last Modified: May 13, 2014
+# Last Modified: May 15, 2014
 
 import urllib2
 import subprocess
 from ftplib import FTP
 import os.path
+
+# Wraps the input string in double quotes. E.g. wrapdblq("s") returns '"s"''
+def quote(s):
+	return '"'+s+'"' 
 
 # Get the CSV custom report and save it
 PDBDir = '/home/sam/school/cs474/pdb/'
@@ -41,8 +45,17 @@ results = results.replace('<br />', '\n')
 
 # Remove all duplicate entries (only keep one chainId)
 resultlist = results.split('\n')
+# Add helix/sheet columns
+header = resultlist[0].split(',')
+header.insert(9, "% alpha helices")
+header.insert(10, "% beta sheets")
+helix_sheetfile = open('helix_sheet.txt', 'r')
+helix_sheetinfo = helix_sheetfile.read()
+helix_sheetinfo = helix_sheetinfo.split('\n')
+
+header = ",".join(header)
 trimmedresults = []
-trimmedresults.append(resultlist[0]) # Add the header
+trimmedresults.append(header) # Add the header
 prevPDBID = None # So the first PDB line always gets added
 for line in resultlist[1:len(resultlist)]:
 	columnlist = line.split(',')
@@ -50,7 +63,23 @@ for line in resultlist[1:len(resultlist)]:
 		break
 	if columnlist[0] != prevPDBID: # We've found a new ID to add
 		prevPDBID = columnlist[0]
-		trimmedresults.append(line)
+		# Add helix and sheet percentages
+		pidcounter = 0
+		for hsline in helix_sheetinfo:
+			pidcounter = pidcounter + 1
+			if columnlist[0] == quote(hsline[:4]):
+				pidcounter = pidcounter - 1
+				break
+		if pidcounter >= len(helix_sheetinfo):
+			print "No data found for", columnlist[0]
+			columnlist.insert(9, '"N/A"')
+			columnlist.insert(10, '"N/A"')
+		else:
+			columnlist.insert(9, \
+					quote(helix_sheetinfo[pidcounter].split(',')[1]))
+			columnlist.insert(10, \
+					quote(helix_sheetinfo[pidcounter].split(',')[2]))
+		trimmedresults.append(",".join(columnlist))
 results = "\n".join(trimmedresults)
 
 print "Writing custom report to "+ PDBDir + reportName
