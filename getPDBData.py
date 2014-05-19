@@ -36,7 +36,7 @@ reporturl = customRptStart + PDBIDList + customRptColumns + customRptEnd
 reporturlfile = open("reportURL.txt", 'w')
 reporturlfile.write(reporturl)
 reporturlfile.close()
-print "Query URL used to generate report saved to \'reportURL.txt\'"
+print "Query URL used to generate report saved to \"reportURL.txt\""
 
 reqReport = urllib2.Request(reporturl)
 print "Getting custom report from RCSB..."
@@ -59,9 +59,9 @@ for line in resultlist[1:len(resultlist)]:
 resultlist = trimmedresults
 
 # Add helix and sheet data to the results
-print "Writing custom report to "+ PDBDir + reportName
+print "Writing custom report to " + quote(reportName)
 resultlistcsv = csv.reader(resultlist, delimiter=',', quotechar='"')
-outfile = open(PDBDir+reportName, 'w')
+outfile = open(reportName, 'w')
 resultcsv = csv.writer(outfile, \
 		delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
 atHeader = True
