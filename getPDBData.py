@@ -1,12 +1,13 @@
 # Download the CSV of protein data for a given set of PDBIDs and download the
 # pdb ent files from wwpdb
 # Author: Sam Pollard
-# Last Modified: May 15, 2014
+# Last Modified: May 18, 2014
 
 import urllib2
 import subprocess
 from ftplib import FTP
 import os.path
+import csv
 
 # Wraps the input string in double quotes. E.g. wrapdblq("s") returns '"s"''
 def quote(s):
@@ -42,52 +43,58 @@ print "Getting custom report from RCSB..."
 reportResponse = urllib2.urlopen(reqReport)
 results = reportResponse.read()
 results = results.replace('<br />', '\n')
+results = results.replace('""', '"NA"') # So R can read empty entries
+resultlist = results.split('\n')
 
 # Remove all duplicate entries (only keep one chainId)
-resultlist = results.split('\n')
-# Add helix/sheet columns
-header = resultlist[0].split(',')
-header.insert(9, "% alpha helices")
-header.insert(10, "% beta sheets")
-helix_sheetfile = open('helix_sheet.txt', 'r')
-helix_sheetinfo = helix_sheetfile.read()
-helix_sheetinfo = helix_sheetinfo.split('\n')
-
-header = ",".join(header)
-trimmedresults = []
-trimmedresults.append(header) # Add the header
 prevPDBID = None # So the first PDB line always gets added
+trimmedresults = [resultlist[0]]
 for line in resultlist[1:len(resultlist)]:
 	columnlist = line.split(',')
 	if len(columnlist) < 2:
 		break
 	if columnlist[0] != prevPDBID: # We've found a new ID to add
 		prevPDBID = columnlist[0]
-		# Add helix and sheet percentages
-		pidcounter = 0
-		for hsline in helix_sheetinfo:
-			pidcounter = pidcounter + 1
-			if columnlist[0] == quote(hsline[:4]):
-				pidcounter = pidcounter - 1
-				break
-		if pidcounter >= len(helix_sheetinfo):
-			print "No data found for", columnlist[0]
-			columnlist.insert(9, '"N/A"')
-			columnlist.insert(10, '"N/A"')
-		else:
-			columnlist.insert(9, \
-					quote(helix_sheetinfo[pidcounter].split(',')[1]))
-			columnlist.insert(10, \
-					quote(helix_sheetinfo[pidcounter].split(',')[2]))
-		trimmedresults.append(",".join(columnlist))
-results = "\n".join(trimmedresults)
+		trimmedresults.append(line)
+resultlist = trimmedresults
 
+# Add helix and sheet data to the results
 print "Writing custom report to "+ PDBDir + reportName
+resultlistcsv = csv.reader(resultlist, delimiter=',', quotechar='"')
 outfile = open(PDBDir+reportName, 'w')
-outfile.write(results)
+resultcsv = csv.writer(outfile, \
+		delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
+atHeader = True
+hsindex = 9
+
+for row in resultlistcsv:
+	# Reset the reader
+	helix_sheetfile = open('helix_sheet.txt', 'r')
+	helix_sheetcsv = csv.reader(helix_sheetfile, delimiter=',', quotechar='"')
+	# Add helix/sheet header
+	if atHeader:
+		row.insert(hsindex, "percentAlphaHelices")
+		row.insert(hsindex+1, "percentBetaSheets")
+		atHeader = False
+	else:
+		found = False
+		for hsrow in helix_sheetcsv:
+			# print row[0], hsrow[0] # TEST
+			if row[0] == hsrow[0]:
+				row.insert(hsindex, hsrow[1])
+				row.insert(hsindex+1, hsrow[2])
+				found = True;
+				break
+		if found == False:
+			print "No helix or sheet data found for", row[0]
+			row.insert(hsindex, 'NA')
+			row.insert(hsindex+1, 'NA')
+		found = False # Reset for next entry
+	resultcsv.writerow(row)
+	helix_sheetfile.close()
 outfile.close()
 
-# Check to see if the need to be downloaded before connecting to wwpdb.org
+# Check to see if PDB's need to be downloaded before connecting to wwpdb.org
 needfiles = False
 for pdbid in PDBIDList.split(','):
 	pdbid = pdbid.lower()
@@ -115,7 +122,7 @@ if needfiles == True:
 			wwpdbftp.cwd(FTPStart+pdbid[1:3]+'/')
 			wwpdbftp.retrbinary('RETR pdb'+pdbid+'.ent.gz', \
 					open(PDBDir+pdbid+'.pdb.gz', 'wb').write)
-	print "\nFile transfer complete." + counter + "files downloaded.",
+	print "\nFile transfer complete." + str(counter) + "files downloaded.",
 	print "Closing connection"
 	wwpdbftp.quit()
 else:

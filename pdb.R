@@ -26,7 +26,8 @@ file.create(file = outfile)
 pids <- strsplit(readLines(infile), ",", fixed = TRUE) #"[[:space:]]+"
 pids <- pids[[1]]
 # Write the header to the outfile.
-cat("Protein,% alpha helix,% beta sheet\n", file = outfile, append = TRUE)
+cat("Protein,percentAlphaHelix,percentBetaSheet\n",
+        file = outfile, append = TRUE)
 
 # Iterate over every protein ID in infile.
 
