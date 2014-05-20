@@ -4,10 +4,11 @@
 # Last Modified: May 18, 2014
 
 import urllib2
-import subprocess
 from ftplib import FTP
 import os.path
 import csv
+from Bio import SeqIO
+from Bio.SeqUtils import ProtParam
 
 # Wraps the input string in double quotes. E.g. wrapdblq("s") returns '"s"''
 def quote(s):
@@ -58,28 +59,34 @@ for line in resultlist[1:len(resultlist)]:
 		trimmedresults.append(line)
 resultlist = trimmedresults
 
-# Add helix and sheet data to the results
+# Create custom report
 print "Writing custom report to " + quote(reportName)
 resultlistcsv = csv.reader(resultlist, delimiter=',', quotechar='"')
 outfile = open(reportName, 'w')
 resultcsv = csv.writer(outfile, \
 		delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
 atHeader = True
-hsindex = 9
+hsindex = 9 # Index for helix (sheet is hsindex+1)
+
+# Open fasta file and use it as a dictionary
+fasta_index = SeqIO.index(PDBDir+'pdb_seqres.txt', 'fasta')
+pIindex = 15 # Index for isoelectric point
 
 for row in resultlistcsv:
 	# Reset the reader
 	helix_sheetfile = open('helix_sheet.txt', 'r')
 	helix_sheetcsv = csv.reader(helix_sheetfile, delimiter=',', quotechar='"')
-	# Add helix/sheet header
+	# Add extra columns in header
 	if atHeader:
 		row.insert(hsindex, "percentAlphaHelices")
 		row.insert(hsindex+1, "percentBetaSheets")
+		row.insert(pIindex, "isoelectricPoint")
+		row.insert(pIindex+1, "instabilityIndex")
 		atHeader = False
-	else:
+	else: # Insert the data into the specified columns
+		# Helix and Sheet data
 		found = False
 		for hsrow in helix_sheetcsv:
-			# print row[0], hsrow[0] # TEST
 			if row[0] == hsrow[0]:
 				row.insert(hsindex, hsrow[1])
 				row.insert(hsindex+1, hsrow[2])
@@ -90,8 +97,18 @@ for row in resultlistcsv:
 			row.insert(hsindex, 'NA')
 			row.insert(hsindex+1, 'NA')
 		found = False # Reset for next entry
+		# Isoelectric Point
+		if (row[0].lower()+"_A") in fasta_index:
+			seq_data = ProtParam.ProteinAnalysis(str(
+					fasta_index[row[0].lower()+"_A"].seq))
+			row.insert(pIindex, seq_data.isoelectric_point())
+			row.insert(pIindex+1, seq_data.instability_index())
+		else:
+			print "No pI data found for", row[0]
+			row.insert(pIindex, 'NA')
 	resultcsv.writerow(row)
 	helix_sheetfile.close()
+fasta_index.close()
 outfile.close()
 
 # Check to see if PDB's need to be downloaded before connecting to wwpdb.org
@@ -111,18 +128,18 @@ if needfiles == True:
 	FTPStart = "/pub/pdb/data/structures/divided/pdb/"
 	wwpdbftp.cwd(FTPStart)
 	print "Connected to WWPDB FTP"
-	print "Downloading..."
+	print "Downloading...",
 	counter = 0
 	for pdbid in PDBIDList.split(','):
 		pdbid = pdbid.lower()
 		if not os.path.isfile(PDBDir+pdbid+'.pdb.gz') and not \
 				os.path.isfile(PDBDir+pdbid+'.pdb'):
 			counter = counter + 1
-			print pdbid+",",
+			print pdbid,
 			wwpdbftp.cwd(FTPStart+pdbid[1:3]+'/')
 			wwpdbftp.retrbinary('RETR pdb'+pdbid+'.ent.gz', \
 					open(PDBDir+pdbid+'.pdb.gz', 'wb').write)
-	print "\nFile transfer complete." + str(counter) + "files downloaded.",
+	print "\nFile transfer complete.", str(counter), "files downloaded.",
 	print "Closing connection"
 	wwpdbftp.quit()
 else:
