@@ -1,7 +1,9 @@
 # Download the CSV of protein data for a given set of PDBIDs and download the
 # pdb ent files from wwpdb
 # Author: Sam Pollard
-# Last Modified: May 18, 2014
+# Last Modified: May 25, 2014
+# Note: clustering.R depends on the order of these columns. Therefore, before
+# adding GRAVY, make sure the R script will still work with the chage
 
 import urllib2
 from ftplib import FTP
@@ -82,6 +84,7 @@ for row in resultlistcsv:
 		row.insert(hsindex+1, "percentBetaSheets")
 		row.insert(pIindex, "isoelectricPoint")
 		row.insert(pIindex+1, "instabilityIndex")
+		# row.insert(pIindex+2, "GRAVY")
 		atHeader = False
 	else: # Insert the data into the specified columns
 		# Helix and Sheet data
@@ -97,14 +100,15 @@ for row in resultlistcsv:
 			row.insert(hsindex, 'NA')
 			row.insert(hsindex+1, 'NA')
 		found = False # Reset for next entry
-		# Isoelectric Point
+		# Isoelectric Point & Grand average of hydropathy (GRAVY)
 		if (row[0].lower()+"_A") in fasta_index:
 			seq_data = ProtParam.ProteinAnalysis(str(
 					fasta_index[row[0].lower()+"_A"].seq))
 			row.insert(pIindex, seq_data.isoelectric_point())
 			row.insert(pIindex+1, seq_data.instability_index())
+			# row.insert(pIindex+2, seq_data.gravy())
 		else:
-			print "No pI data found for", row[0]
+			print "No pI or GRAVY data found for", row[0]
 			row.insert(pIindex, 'NA')
 	resultcsv.writerow(row)
 	helix_sheetfile.close()
