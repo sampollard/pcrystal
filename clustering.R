@@ -59,6 +59,7 @@ colorLabels <<- function(n, groups) {
     }
     n # I don't know what this does but it's in all the examples
 }
+#TODO: Add a function to change the colors of the points in a scatterplot
 
 # Change the plot parameters
 plotsettings <- par(cex = 0.8, cex.main = 1.4, cex.sub = 0.9, cex.lab = 1.25,
@@ -98,7 +99,7 @@ exitval <- dev.off()
 
 ## Plotting other trees:
 # Physical Data:
-physical_cols <- c(1,8,15,16,17,23)
+physical_cols <- c(1,8,11,15,16,17,23)
 physical_data <- data.frame(cbind(table[physical_cols]),
         row.names = 1, check.rows = TRUE)
 physical <- agnes(physical_data, diss = FALSE, metric = "euclidean",
@@ -110,12 +111,21 @@ psubtitlestr <- paste("Using ",
         paste(datacols[physical_cols[2:length(physical_cols)]],
         collapse = ", "), "(AC = ", round(physical$ac, digits = 2), ")")
 hc <- hclust(physical$diss, method = "average")
-hcd <- as.dendrogram(hc, hang = 0.05)
+hcd <- as.dendrogram(hc, hang = 0.2)
 prettyTree <- dendrapply(hcd, colorLabels, proteinGroups)
 pdf('trees/physical_cluster.pdf')
-par(plotsettings)
-plot(prettyTree, main = paste(ptitlestr, "(hclust)"), sub = psubtitlestr,
+par(cex = 1, cex.main = 1.4, cex.sub = 0.8, cex.lab = 1.4,
+        cex.axis = 1.25, col.main = "blue", bg = "white",
+        col = "black")
+plot(prettyTree, main = ptitlestr, sub = psubtitlestr,
         ylab = "height")
+exitval <- dev.off()
+# Plot png
+png('trees/physical_cluster_colored.png', width = 700, height = 700)
+par(cex = 1.2, cex.main = 1.4, cex.sub = 0.9, cex.lab = 1.4,
+        cex.axis = 1.25, col.main = "blue", bg = "white",
+        col = "black")
+plot(prettyTree, main = ptitlestr, sub = psubtitlestr, ylab = "height")
 exitval <- dev.off()
 
 # Crystallization Data:
@@ -132,12 +142,19 @@ csubtitlestr <-  paste("Using ",
         paste(datacols[crystal_cols[2:length(crystal_cols)]], collapse = ", "),
         "(AC = ", round(crystal$ac, digits = 2), ")")
 hc <- hclust(crystal$diss, method = "average")
-hcd <- as.dendrogram(hc, hang = 0.05)
+hcd <- as.dendrogram(hc, hang = 0.1)
 prettyTree <- dendrapply(hcd, colorLabels, proteinGroups)
 pdf('trees/crystal_cluster.pdf')
 par(plotsettings)
 plot(prettyTree, main = paste(ctitlestr, "(hclust)"), sub = csubtitlestr,
         ylab = "height")
+exitval <- dev.off()
+# Plot png
+png('trees/crystal_cluster.png',width = 700, height = 700)
+par(cex = 1.2, cex.main = 1.4, cex.sub = 0.9, cex.lab = 1.4,
+        cex.axis = 1.25, col.main = "blue", bg = "white",
+        col = "black")
+plot(prettyTree, main = ctitlestr, sub = csubtitlestr, ylab = "height")
 exitval <- dev.off()
 
 # Plot of Everything
